@@ -4,20 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
   <title>مدیریت مالی محمدرضا</title>
-  <link rel="manifest" href="manifest.json">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <link rel="apple-touch-icon" href="icon.png" onerror="this.style.display='none';">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment-timezone/0.5.34/moment-timezone-with-data.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jalali-moment/3.3.11/jalali-moment.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
     html, body { min-height: 100vh; }
     body {
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Tahoma', 'Roboto', sans-serif;
       background-color: #1e1e1e;
       color: #e0e0e0;
       margin: 0;
@@ -50,6 +47,7 @@
       cursor: pointer;
       color: #bbb;
       transition: color 0.3s;
+      user-select: none;
     }
     .tab.active {
       color: #ffd700;
@@ -176,7 +174,6 @@
         <button onclick="updateCustomMonth()" class="btn w-full mt-2">تأیید ماه</button>
       </div>
       <div id="monthlyReportContent"></div>
-      <canvas id="monthlyChart"></canvas>
     </div>
     <div id="accounting" class="card tab-content hidden">
       <h2 class="text-lg font-semibold mb-2 flex items-center"><i class="fas fa-calculator mr-2"></i>گزارش مالی</h2>
@@ -215,44 +212,36 @@
     </div>
   </div>
   <script>
-    // --- مقداردهی اولیه ---
+    // ===== مقداردهی =====
     let partners = JSON.parse(localStorage.getItem('partners')) || [];
     let items = JSON.parse(localStorage.getItem('items')) || [];
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
     let debts = JSON.parse(localStorage.getItem('debts')) || [];
     let credits = JSON.parse(localStorage.getItem('credits')) || [];
-    const dateInput = document.getElementById('date');
-    const dailyDateInput = document.getElementById('dailyDate');
-    const monthlyDateInput = document.getElementById('monthlyDate');
-    const accountingDateInput = document.getElementById('accountingDate');
-    const timeDisplay = document.getElementById('time');
-    const searchInput = document.getElementById('searchInput');
-    const searchResults = document.getElementById('searchResults');
     let taskCount = 0;
 
     // پیام خوش‌آمد
-    const welcomeMessages = [
+    const welcomes = [
       "خوش اومدی محمدرضا! روز مالی خوبی داشته باش!",
       "محمدرضا، مدیریت مالی رو شروع کن!",
       "خوش اومدی! درآمدت رو ردیابی کن!",
       "محمدرضا، به سوی ثروت قدم بردار!"
     ];
-    document.getElementById('welcomeMessage').textContent = welcomeMessages[Math.floor(Math.random() * welcomeMessages.length)];
+    document.getElementById('welcomeMessage').textContent = welcomes[Math.floor(Math.random() * welcomes.length)];
 
     // تاریخ و ساعت
     function updateDateTime() {
-      let jalaliDate = jalaliMoment().format('jYYYY/jMM/jDD');
-      let currentTime = moment.tz('Asia/Tehran').format('HH:mm');
-      timeDisplay.textContent = `${currentTime} +03:30${!navigator.onLine ? ' (آفلاین)' : ''}`;
-      dateInput.value = jalaliDate;
-      dailyDateInput.value = jalaliDate;
-      monthlyDateInput.value = jalaliDate.slice(0, 7);
-      accountingDateInput.value = jalaliDate.slice(0, 4);
-      localStorage.setItem('lastJalaliDate', jalaliDate);
-      updateAllTabs();
+      let jalaliDate = window.jalaliMoment().format('jYYYY/jMM/jDD');
+      let now = new Date();
+      let hour = now.getHours().toString().padStart(2, '0');
+      let min = now.getMinutes().toString().padStart(2, '0');
+      document.getElementById('time').textContent = `${hour}:${min}`;
+      if(!dateInput.value) dateInput.value = jalaliDate;
+      if(!dailyDateInput.value) dailyDateInput.value = jalaliDate;
+      if(!monthlyDateInput.value) monthlyDateInput.value = jalaliDate.slice(0,7);
+      if(!accountingDateInput.value) accountingDateInput.value = jalaliDate.slice(0,4);
     }
-    updateDateTime();
-    setInterval(updateDateTime, 60000);
+    setInterval(updateDateTime, 30000); updateDateTime();
 
     // تب‌بندی
     function showTab(tabId) {
@@ -261,10 +250,10 @@
       document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
       document.getElementById(tabId).classList.remove('hidden');
       if (tabId === 'dailyReport') showDailyReport();
-      else if (tabId === 'monthlyReport') updateMonthlyReport();
-      else if (tabId === 'accounting') updateAccounting();
-      else if (tabId === 'debt') updateDebt();
-      else if (tabId === 'credit') updateCredit();
+      else if (tabId === 'monthlyReport') showMonthlyReport();
+      else if (tabId === 'accounting') showAccounting();
+      else if (tabId === 'debt') showDebt();
+      else if (tabId === 'credit') showCredit();
       else if (tabId === 'search') searchTasks();
     }
 
@@ -292,14 +281,14 @@
       const itemSelect = document.getElementById('item');
       itemSelect.innerHTML = '<option value="">انتخاب جنس</option><option value="-1">بدون جنس (۰)</option>';
       items.forEach((i, index) => {
-        itemSelect.innerHTML += `<option value="${index}">${i.name} - ${i.price.toLocaleString()} تومان (دسته: ${i.category || 'عمومی'})</option>`;
+        itemSelect.innerHTML += `<option value="${index}">${i.name} - ${i.price.toLocaleString()} تومان${i.category ? ' ('+i.category+')' : ''}</option>`;
       });
       localStorage.setItem('items', JSON.stringify(items));
     }
     function addItem() {
       const name = prompt('نام جنس را وارد کنید');
       const price = parseInt(prompt('قیمت (تومان)')) || 0;
-      const category = prompt('دسته‌بندی (اختیاری)') || 'عمومی';
+      const category = prompt('دسته‌بندی (اختیاری)') || '';
       if (name && price >= 0) {
         items.push({ name, price, category });
         updateItemList();
@@ -325,19 +314,12 @@
       taskDiv.remove();
     }
 
-    // ذخیره روزانه (تراکنش‌های چندگانه و حقوق فقط یکبار)
     function saveDay() {
       const date = dateInput.value;
-      if (!date) {
-        alert('لطفاً تاریخ وارد کنید.');
-        return;
-      }
+      if (!date) return alert('لطفاً تاریخ وارد کنید.');
       const partnerIndex = document.getElementById('partner').value;
       const itemIndex = document.getElementById('item').value;
-      if (partnerIndex === '' || itemIndex === '') {
-        alert('لطفاً همکار و جنس را انتخاب کنید');
-        return;
-      }
+      if (partnerIndex === '' || itemIndex === '') return alert('لطفاً همکار و جنس را انتخاب کنید');
       const partner = partnerIndex === '-1' ? { name: 'بدون همکار', salary: 0, totalPaid: 0, totalWorkedDays: 0 } : partners[partnerIndex];
       const item = itemIndex === '-1' ? { name: 'بدون جنس', price: 0 } : items[itemIndex];
       const dayTasks = [];
@@ -356,14 +338,10 @@
           tasks[dayIndex].tasks.push(...dayTasks);
         } else {
           tasks.push({ date, partner: partner.name, partnerSalary: partner.salary, item: item.name, itemPrice: item.price, tasks: dayTasks });
-          if (partnerIndex !== '-1') {
-            partners[partnerIndex].totalWorkedDays += 1;
-          }
+          if (partnerIndex !== '-1') partners[partnerIndex].totalWorkedDays += 1;
         }
         localStorage.setItem('tasks', JSON.stringify(tasks));
-        if (partnerIndex !== '-1') {
-          localStorage.setItem('partners', JSON.stringify(partners));
-        }
+        if (partnerIndex !== '-1') localStorage.setItem('partners', JSON.stringify(partners));
         dayTasks.forEach(task => {
           if (task.income > 0 && !task.paid) {
             const existingCredit = credits.find(c => c.description === `${date} - ${task.description}` && c.amount === task.income);
@@ -380,16 +358,16 @@
             <input type="number" id="taskExpense0" placeholder="هزینه (تومان)" class="w-full p-2 border rounded mb-1" required />
           </div>`;
         taskCount = 0;
-        updateAllTabs();
+        updateAll();
       } else {
         alert('حداقل یک تراکنش را وارد کنید');
       }
     }
 
-    // گزارش روزانه (نمایش و ویرایش تراکنش‌های یک روز)
+    // گزارش روزانه
     function showDailyReport() {
       const reportDiv = document.getElementById('dailyReportContent');
-      const date = dailyDateInput.value;
+      const date = document.getElementById('dailyDate').value;
       const dayTasks = tasks.find(t => t.date === date);
       if (dayTasks) {
         reportDiv.innerHTML = `
@@ -399,14 +377,13 @@
             <tr><td>جنس</td><td>${dayTasks.item} - ${dayTasks.itemPrice.toLocaleString()} تومان</td></tr>
           </table>
           <table class="mt-2">
-            <tr><th>توضیح</th><th>درآمد</th><th>هزینه</th><th>سود</th><th>وضعیت پرداخت</th></tr>
-            ${dayTasks.tasks.map((task, index) => `
+            <tr><th>توضیح</th><th>درآمد</th><th>هزینه</th><th>سود</th></tr>
+            ${dayTasks.tasks.map(task => `
               <tr>
                 <td>${task.description}</td>
                 <td>${task.income.toLocaleString()}</td>
                 <td>${task.expense.toLocaleString()}</td>
                 <td>${task.profit.toLocaleString()}</td>
-                <td>${task.paid ? 'پرداخت شده' : 'در انتظار پرداخت'}</td>
               </tr>
             `).join('')}
           </table>`;
@@ -414,10 +391,8 @@
         reportDiv.innerHTML = '<p>هیچ تراکنشی برای این روز ثبت نشده.</p>';
       }
     }
-
-    // سایر گزارش‌ها (ماهانه، حسابداری، بدهی، طلب، جستجو و ...)
-    function updateMonthlyReport() {
-      const month = monthlyDateInput.value;
+    function showMonthlyReport() {
+      const month = document.getElementById('monthlyDate').value;
       const filteredTasks = tasks.filter(t => t.date.startsWith(month));
       const reportDiv = document.getElementById('monthlyReportContent');
       if (filteredTasks.length > 0) {
@@ -438,36 +413,10 @@
       } else {
         reportDiv.innerHTML = '<p>هیچ تراکنشی برای این ماه ثبت نشده.</p>';
       }
-      // نمودار ماهانه
-      const ctx = document.getElementById('monthlyChart').getContext('2d');
-      if (ctx) {
-        let monthlyChartInstance = Chart.getChart(ctx);
-        if (monthlyChartInstance) monthlyChartInstance.destroy();
-        const totalIncome = filteredTasks.reduce((sum, t) => sum + t.tasks.reduce((s, task) => s + task.income, 0), 0);
-        const totalExpense = filteredTasks.reduce((sum, t) => sum + t.tasks.reduce((s, task) => s + task.expense, 0), 0);
-        const totalProfit = totalIncome - totalExpense;
-        new Chart(ctx, {
-          type: 'pie',
-          data: {
-            labels: ['درآمد', 'هزینه‌ها', 'سود'],
-            datasets: [{
-              data: [totalIncome, totalExpense, totalProfit],
-              backgroundColor: ['#ffd700', '#ff4444', '#00C851']
-            }]
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: { position: 'top', labels: { color: '#e0e0e0', font: { family: 'Roboto' } } },
-              title: { display: true, text: `بیلان ماه ${month}`, color: '#e0e0e0', font: { family: 'Roboto' } }
-            }
-          }
-        });
-      }
     }
-    function updateAccounting() {
+    function showAccounting() {
       const accountingDiv = document.getElementById('accountingContent');
-      const year = accountingDateInput.value;
+      const year = document.getElementById('accountingDate').value;
       const filteredTasks = tasks.filter(t => t.date.startsWith(year));
       const totalIncome = filteredTasks.reduce((sum, t) => sum + t.tasks.reduce((s, task) => s + task.income, 0), 0);
       const totalExpense = filteredTasks.reduce((sum, t) => sum + t.tasks.reduce((s, task) => s + task.expense, 0), 0);
@@ -484,7 +433,7 @@
           <tr><td>سود خالص</td><td>${totalProfit.toLocaleString()} تومان</td></tr>
         </table>`;
     }
-    function updateDebt() {
+    function showDebt() {
       const debtDiv = document.getElementById('debtContent');
       let totalDebt = 0;
       partners.forEach(p => {
@@ -498,7 +447,7 @@
           <tr><td>بدهی کل به همکارها</td><td>${totalDebt.toLocaleString()} تومان</td></tr>
         </table>`;
     }
-    function updateCredit() {
+    function showCredit() {
       const creditDiv = document.getElementById('creditContent');
       const totalCredit = credits.reduce((sum, c) => sum + c.amount, 0);
       creditDiv.innerHTML = `
@@ -508,17 +457,18 @@
         </table>`;
     }
     function searchTasks() {
-      const query = searchInput.value.toLowerCase().trim();
-      if (!query) {
-        searchResults.innerHTML = '<p>جستجو را شروع کنید...</p>';
-        return;
-      }
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
       const results = tasks.filter(task => {
         return task.date.toLowerCase().includes(query) ||
                task.item.toLowerCase().includes(query) ||
                task.partner.toLowerCase().includes(query) ||
                task.tasks.some(t => t.description.toLowerCase().includes(query));
       });
+      const searchResults = document.getElementById('searchResults');
+      if (!query) {
+        searchResults.innerHTML = '<p>جستجو را شروع کنید...</p>';
+        return;
+      }
       if (results.length > 0) {
         searchResults.innerHTML = `
           <table>
@@ -540,68 +490,101 @@
       }
     }
 
-    // اعتبارسنجی تاریخ
-    function validateDate(dateStr) {
-      const [year, month, day] = dateStr.split('/').map(Number);
-      return year >= 1300 && year <= 1500 && month >= 1 && month <= 12 && day >= 1 && day <= 31;
+    // بدهی/طلبکاری
+    function addDebt() {
+      const desc = document.getElementById('newDebtDescription').value;
+      const amount = parseInt(document.getElementById('newDebtAmount').value);
+      if (!desc || !amount) return alert('توضیح و مبلغ بدهی را وارد کنید');
+      debts.push({ description: desc, amount });
+      localStorage.setItem('debts', JSON.stringify(debts));
+      document.getElementById('newDebtDescription').value = '';
+      document.getElementById('newDebtAmount').value = '';
+      showDebt();
     }
+    function settleDebt() {
+      const amount = parseInt(document.getElementById('settleDebtAmount').value);
+      if (!amount) return alert('مبلغ را وارد کنید');
+      let remaining = amount;
+      debts = debts.reduce((arr, d) => {
+        if (remaining <= 0) return arr.concat(d);
+        if (d.amount <= remaining) {
+          remaining -= d.amount;
+          return arr;
+        } else {
+          d.amount -= remaining;
+          remaining = 0;
+          return arr.concat(d);
+        }
+      }, []);
+      localStorage.setItem('debts', JSON.stringify(debts));
+      document.getElementById('settleDebtAmount').value = '';
+      showDebt();
+    }
+    function addCredit() {
+      const desc = document.getElementById('newCreditDescription').value;
+      const amount = parseInt(document.getElementById('newCreditAmount').value);
+      if (!desc || !amount) return alert('توضیح و مبلغ طلب را وارد کنید');
+      credits.push({ description: desc, amount });
+      localStorage.setItem('credits', JSON.stringify(credits));
+      document.getElementById('newCreditDescription').value = '';
+      document.getElementById('newCreditAmount').value = '';
+      showCredit();
+    }
+    function settleCredit() {
+      const amount = parseInt(document.getElementById('settleCreditAmount').value);
+      if (!amount) return alert('مبلغ را وارد کنید');
+      let remaining = amount;
+      credits = credits.reduce((arr, c) => {
+        if (remaining <= 0) return arr.concat(c);
+        if (c.amount <= remaining) {
+          remaining -= c.amount;
+          return arr;
+        } else {
+          c.amount -= remaining;
+          remaining = 0;
+          return arr.concat(c);
+        }
+      }, []);
+      localStorage.setItem('credits', JSON.stringify(credits));
+      document.getElementById('settleCreditAmount').value = '';
+      showCredit();
+    }
+
+    // تاریخ‌ها
     function updateCustomDate(inputId) {
       const input = document.getElementById(inputId);
       const dateStr = input.value.trim();
-      if (dateStr && validateDate(dateStr)) {
-        input.value = dateStr;
-      } else {
-        alert('لطفاً تاریخ معتبر وارد کنید (فرمت: YYYY/MM/DD، مثلاً 1404/04/19)');
-        input.value = '1404/04/19';
-      }
-      updateAllTabs();
+      if (/^14\d{2}\/\d{2}\/\d{2}$/.test(dateStr)) input.value = dateStr;
+      else input.value = window.jalaliMoment().format('jYYYY/jMM/jDD');
+      updateAll();
     }
     function updateCustomMonth() {
-      const monthStr = monthlyDateInput.value.trim();
-      const [year, month] = monthStr.split('/').map(Number);
-      if (monthStr && year >= 1300 && year <= 1500 && month >= 1 && month <= 12) {
-        monthlyDateInput.value = monthStr;
-      } else {
-        alert('لطفاً ماه معتبر وارد کنید (فرمت: YYYY/MM، مثلاً 1404/04)');
-        monthlyDateInput.value = '1404/04';
-      }
-      updateMonthlyReport();
+      const input = document.getElementById('monthlyDate');
+      const monthStr = input.value.trim();
+      if (/^14\d{2}\/\d{2}$/.test(monthStr)) input.value = monthStr;
+      else input.value = window.jalaliMoment().format('jYYYY/jMM');
+      showMonthlyReport();
     }
     function updateCustomYear() {
-      const yearStr = accountingDateInput.value.trim();
-      const year = parseInt(yearStr);
-      if (yearStr && year >= 1300 && year <= 1500) {
-        accountingDateInput.value = yearStr;
-      } else {
-        alert('لطفاً سال معتبر وارد کنید (فرمت: YYYY، مثلاً 1404)');
-        accountingDateInput.value = '1404';
-      }
-      updateAccounting();
+      const input = document.getElementById('accountingDate');
+      const yearStr = input.value.trim();
+      if (/^14\d{2}$/.test(yearStr)) input.value = yearStr;
+      else input.value = window.jalaliMoment().format('jYYYY');
+      showAccounting();
     }
-
-    function updateAllTabs() {
+    function updateAll() {
+      updatePartnerList();
+      updateItemList();
       showDailyReport();
-      updateMonthlyReport();
-      updateAccounting();
-      updateDebt();
-      updateCredit();
+      showMonthlyReport();
+      showAccounting();
+      showDebt();
+      showCredit();
       searchTasks();
     }
 
-    // مقداردهی اولیه
-    updatePartnerList();
-    updateItemList();
+    updateAll();
     showTab('dailyReport');
-    updateAllTabs();
-
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      fetch('sw.js').then(() => {
-        navigator.serviceWorker.register('sw.js').catch(error => alert('خطا در ثبت Service Worker: ' + error.message));
-      }).catch(() => {
-        console.warn('فایل Service Worker یافت نشد.');
-      });
-    }
   </script>
 </body>
 </html>
