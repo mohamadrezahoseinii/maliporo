@@ -1,452 +1,89 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>مدیریت مالی محمدرضا</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jalali-moment/3.3.11/jalali-moment.min.js"></script>
+  <title>مالی محمدرضا (نسخه تستی کاملاً عملیاتی)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    body { background: #222; color: #eee; font-family: Tahoma, sans-serif; }
-    .hidden { display: none; }
-    .tab.active { color: #ffd700; font-weight: bold; }
-    .tab { cursor: pointer; padding: 0.5rem 1rem; }
-    .card { background: #2c2c2c; border-radius: 0.5rem; padding: 1.5rem; margin-bottom: 1rem; }
-    input, select { background: #333; color: #eee; border: 1px solid #444; border-radius: .25rem; margin-bottom: .5rem; }
-    input:focus { border-color: #ffd700; }
-    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-    th, td { padding: .5rem; border-bottom: 1px solid #444; }
-    th { background: #337a3a; color: #fff; }
-    .btn { background: #388e3c; color: #fff; border-radius: .5rem; padding: .5rem 1rem; border: none; cursor: pointer; }
-    .btn:hover { background: #256029; }
+    body { background:#222; color:#fff; font-family:tahoma; max-width:500px; margin:auto; padding:16px; }
+    label{display:block;margin:8px 0 2px}
+    input,select,button {font-size:1rem;padding:6px;margin-bottom:8px;width:100%;border-radius:5px;border:1px solid #444;background:#333;color:#fff;}
+    button{background:#388e3c;border:none;cursor:pointer;}
+    button:hover{background:#256029;}
+    table{width:100%;margin-top:16px;border-collapse:collapse;}
+    th,td{border-bottom:1px solid #444;padding:5px;}
+    th{background:#2e7d32}
+    .tab{display:inline-block;margin:8px;padding:6px 12px;cursor:pointer;color:#bbb;}
+    .tab.active{color:#ffd700;font-weight:bold;border-bottom:2px solid #ffd700;}
+    .hidden{display:none;}
   </style>
 </head>
 <body>
-  <div class="container mx-auto max-w-xl p-2">
-    <div class="header text-center bg-green-800 text-white rounded-t-lg py-4 mb-2">
-      <h1 class="text-xl font-bold">مدیریت مالی محمدرضا</h1>
-      <span id="time" class="text-sm"></span>
-    </div>
-    <div class="tabs flex justify-around bg-gray-800 rounded-lg mb-2">
-      <div class="tab" onclick="showTab('transaction')">ثبت تراکنش</div>
-      <div class="tab active" onclick="showTab('dailyReport')">روزانه</div>
-      <div class="tab" onclick="showTab('monthlyReport')">ماهانه</div>
-      <div class="tab" onclick="showTab('accounting')">حسابداری</div>
-      <div class="tab" onclick="showTab('debt')">بدهی</div>
-      <div class="tab" onclick="showTab('credit')">طلبکاری</div>
-      <div class="tab" onclick="showTab('search')">جستجو</div>
-    </div>
-    <!-- Transaction Tab -->
-    <div id="transaction" class="card tab-content">
-      <h2 class="mb-2"><i class="fas fa-calendar-alt ml-2"></i>ثبت تراکنش</h2>
-      <input type="text" id="date" class="w-full p-2 text-center" placeholder="تاریخ (1404/04/19)" />
-      <button onclick="addPartner()" class="btn w-full mb-1">اضافه کردن همکار</button>
-      <select id="partner" class="w-full mb-2"></select>
-      <button onclick="addItem()" class="btn w-full mb-1">اضافه کردن جنس</button>
-      <select id="item" class="w-full mb-2"></select>
-      <div id="taskList">
-        <div>
-          <input type="text" id="taskDescription0" placeholder="توضیح تراکنش" class="w-full mb-1" />
-          <input type="number" id="taskIncome0" placeholder="درآمد (تومان)" class="w-full mb-1" />
-          <input type="number" id="taskExpense0" placeholder="هزینه (تومان)" class="w-full mb-1" />
-        </div>
-      </div>
-      <button onclick="addTaskInput()" class="btn w-full mb-1">تراکنش جدید</button>
-      <button onclick="saveDay()" class="btn w-full">ثبت همه تراکنش‌ها</button>
-    </div>
-    <!-- Daily Report Tab -->
-    <div id="dailyReport" class="card tab-content hidden">
-      <h2 class="mb-2"><i class="fas fa-chart-bar ml-2"></i>گزارش روزانه</h2>
-      <input type="text" id="dailyDate" class="w-full p-2 text-center" placeholder="تاریخ (1404/04/19)" />
-      <div id="dailyReportContent"></div>
-    </div>
-    <!-- Monthly Report Tab -->
-    <div id="monthlyReport" class="card tab-content hidden">
-      <h2 class="mb-2"><i class="fas fa-calendar-alt ml-2"></i>گزارش ماهانه</h2>
-      <input type="text" id="monthlyDate" class="w-full p-2 text-center" placeholder="ماه (1404/04)" />
-      <div id="monthlyReportContent"></div>
-    </div>
-    <!-- Accounting Tab -->
-    <div id="accounting" class="card tab-content hidden">
-      <h2 class="mb-2"><i class="fas fa-calculator ml-2"></i>گزارش مالی</h2>
-      <input type="text" id="accountingDate" class="w-full p-2 text-center" placeholder="سال (1404)" />
-      <div id="accountingContent"></div>
-    </div>
-    <!-- Debt Tab -->
-    <div id="debt" class="card tab-content hidden">
-      <h2 class="mb-2"><i class="fas fa-money-bill-wave ml-2"></i>بدهی</h2>
-      <div id="debtContent"></div>
-      <input type="text" id="newDebtDescription" placeholder="توضیح بدهی" class="w-full mb-1" />
-      <input type="number" id="newDebtAmount" placeholder="مبلغ (تومان)" class="w-full mb-1" />
-      <button onclick="addDebt()" class="btn w-full mb-1">اضافه کردن بدهی</button>
-      <input type="number" id="settleDebtAmount" placeholder="مبلغ تسویه (تومان)" class="w-full mb-1" />
-      <button onclick="settleDebt()" class="btn w-full">تسویه بدهی</button>
-    </div>
-    <!-- Credit Tab -->
-    <div id="credit" class="card tab-content hidden">
-      <h2 class="mb-2"><i class="fas fa-hand-holding-usd ml-2"></i>طلبکاری</h2>
-      <div id="creditContent"></div>
-      <input type="text" id="newCreditDescription" placeholder="توضیح طلب" class="w-full mb-1" />
-      <input type="number" id="newCreditAmount" placeholder="مبلغ (تومان)" class="w-full mb-1" />
-      <button onclick="addCredit()" class="btn w-full mb-1">اضافه کردن طلب</button>
-      <input type="number" id="settleCreditAmount" placeholder="مبلغ تسویه (تومان)" class="w-full mb-1" />
-      <button onclick="settleCredit()" class="btn w-full">تسویه طلب</button>
-    </div>
-    <!-- Search Tab -->
-    <div id="search" class="card tab-content hidden">
-      <h2 class="mb-2"><i class="fas fa-search ml-2"></i>جستجو</h2>
-      <input type="text" id="searchInput" class="w-full mb-2" placeholder="جستجو (توضیح، تاریخ، یا جنس)" oninput="searchTasks()" />
-      <div id="searchResults"></div>
-    </div>
+  <h1 style="text-align:center">مالی محمدرضا</h1>
+  <div>
+    <span class="tab active" onclick="showTab('add')">ثبت تراکنش</span>
+    <span class="tab" onclick="showTab('list')">گزارش</span>
   </div>
-  <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    // --- Data ---
-    let partners = JSON.parse(localStorage.getItem('partners')) || [];
-    let items = JSON.parse(localStorage.getItem('items')) || [];
-    let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
-    let debts = JSON.parse(localStorage.getItem('debts')) || [];
-    let credits = JSON.parse(localStorage.getItem('credits')) || [];
-    let taskCount = 0;
-
-    // Time
-    function updateDateTime() {
-      let jalaliDate = window.jalaliMoment().format('jYYYY/jMM/jDD');
-      let now = new Date();
-      document.getElementById('time').textContent = jalaliDate + " - " + now.getHours().toString().padStart(2, '0') + ":" + now.getMinutes().toString().padStart(2, '0');
-      if(!dateInput.value) dateInput.value = jalaliDate;
-      if(!dailyDateInput.value) dailyDateInput.value = jalaliDate;
-      if(!monthlyDateInput.value) monthlyDateInput.value = jalaliDate.slice(0,7);
-      if(!accountingDateInput.value) accountingDateInput.value = jalaliDate.slice(0,4);
-    }
-    setInterval(updateDateTime, 30000);
-
-    // Tabs
-    window.showTab = function(tabId) {
-      document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
-      document.querySelector(`.tab[onclick="showTab('${tabId}')"]`).classList.add('active');
-      document.getElementById(tabId).classList.remove('hidden');
-      if (tabId === 'dailyReport') showDailyReport();
-      else if (tabId === 'monthlyReport') showMonthlyReport();
-      else if (tabId === 'accounting') showAccounting();
-      else if (tabId === 'debt') showDebt();
-      else if (tabId === 'credit') showCredit();
-      else if (tabId === 'search') searchTasks();
-    };
-
-    // Partner
-    function updatePartnerList() {
-      const partnerSelect = document.getElementById('partner');
-      partnerSelect.innerHTML = '<option value="">انتخاب همکار</option><option value="-1">بدون همکار (۰)</option>';
-      partners.forEach((p, index) => {
-        partnerSelect.innerHTML += `<option value="${index}">${p.name} - ${p.salary.toLocaleString()} تومان/روز</option>`;
-      });
-      localStorage.setItem('partners', JSON.stringify(partners));
-    }
-    window.addPartner = function() {
-      const name = prompt('نام همکار را وارد کنید');
-      const salary = parseInt(prompt('حقوق روزانه (تومان)')) || 0;
-      if (name && salary >= 0) {
-        partners.push({ name, salary, totalPaid: 0, totalWorkedDays: 0 });
-        updatePartnerList();
-      } else {
-        alert('لطفاً نام و حقوق معتبر وارد کنید.');
-      }
-    }
-
-    // Items
-    function updateItemList() {
-      const itemSelect = document.getElementById('item');
-      itemSelect.innerHTML = '<option value="">انتخاب جنس</option><option value="-1">بدون جنس (۰)</option>';
-      items.forEach((i, index) => {
-        itemSelect.innerHTML += `<option value="${index}">${i.name} - ${i.price.toLocaleString()} تومان</option>`;
-      });
-      localStorage.setItem('items', JSON.stringify(items));
-    }
-    window.addItem = function() {
-      const name = prompt('نام جنس را وارد کنید');
-      const price = parseInt(prompt('قیمت (تومان)')) || 0;
-      if (name && price >= 0) {
-        items.push({ name, price });
-        updateItemList();
-      } else {
-        alert('لطفاً نام و قیمت معتبر وارد کنید.');
-      }
-    }
-
-    // Task Input
-    window.addTaskInput = function() {
-      taskCount++;
-      const taskList = document.getElementById('taskList');
-      taskList.innerHTML += `
-        <div>
-          <input type="text" id="taskDescription${taskCount}" placeholder="توضیح تراکنش" class="w-full mb-1" />
-          <input type="number" id="taskIncome${taskCount}" placeholder="درآمد (تومان)" class="w-full mb-1" />
-          <input type="number" id="taskExpense${taskCount}" placeholder="هزینه (تومان)" class="w-full mb-1" />
-          <button onclick="removeTaskInput(${taskCount})" class="btn w-full mb-1">حذف تراکنش</button>
-        </div>`;
-    }
-    window.removeTaskInput = function(index) {
-      document.getElementById(`taskDescription${index}`).parentElement.remove();
-    }
-
-    // Save Day
-    window.saveDay = function() {
-      const date = dateInput.value;
-      const partnerIndex = document.getElementById('partner').value;
-      const itemIndex = document.getElementById('item').value;
-      if (!date || partnerIndex === '' || itemIndex === '') return alert('تاریخ، همکار و جنس را انتخاب کنید');
-      const partner = partnerIndex === '-1' ? { name: 'بدون همکار', salary: 0, totalPaid: 0, totalWorkedDays: 0 } : partners[partnerIndex];
-      const item = itemIndex === '-1' ? { name: 'بدون جنس', price: 0 } : items[itemIndex];
-      const dayTasks = [];
-      for (let i = 0; i <= taskCount; i++) {
-        const desc = document.getElementById(`taskDescription${i}`)?.value || '';
-        const income = parseInt(document.getElementById(`taskIncome${i}`)?.value) || 0;
-        const expense = parseInt(document.getElementById(`taskExpense${i}`)?.value) || 0;
-        if (desc || income || expense) dayTasks.push({ description: desc, income, expense, profit: income - expense, paid: false });
-      }
-      if (dayTasks.length) {
-        let dayIndex = tasks.findIndex(t => t.date === date);
-        if (dayIndex !== -1) {
-          tasks[dayIndex].tasks.push(...dayTasks);
-        } else {
-          tasks.push({ date, partner: partner.name, partnerSalary: partner.salary, item: item.name, itemPrice: item.price, tasks: dayTasks });
-          if (partnerIndex !== '-1') partners[partnerIndex].totalWorkedDays = (partners[partnerIndex].totalWorkedDays || 0) + 1;
-        }
-        localStorage.setItem('tasks', JSON.stringify(tasks));
-        if (partnerIndex !== '-1') localStorage.setItem('partners', JSON.stringify(partners));
-        document.getElementById('taskList').innerHTML = `
-          <div>
-            <input type="text" id="taskDescription0" placeholder="توضیح تراکنش" class="w-full mb-1" />
-            <input type="number" id="taskIncome0" placeholder="درآمد (تومان)" class="w-full mb-1" />
-            <input type="number" id="taskExpense0" placeholder="هزینه (تومان)" class="w-full mb-1" />
-          </div>`;
-        taskCount = 0;
-        updateAll();
-      } else {
-        alert('حداقل یک تراکنش را وارد کنید');
-      }
-    }
-
-    // Daily Report
-    function showDailyReport() {
-      const reportDiv = document.getElementById('dailyReportContent');
-      const date = document.getElementById('dailyDate').value;
-      const dayTasks = tasks.find(t => t.date === date);
-      if (dayTasks) {
-        reportDiv.innerHTML = `
-          <table>
-            <tr><th>مورد</th><th>جزئیات</th></tr>
-            <tr><td>همکار</td><td>${dayTasks.partner}</td></tr>
-            <tr><td>جنس</td><td>${dayTasks.item}</td></tr>
-          </table>
-          <table>
-            <tr><th>توضیح</th><th>درآمد</th><th>هزینه</th><th>سود</th></tr>
-            ${dayTasks.tasks.map(task => `
-              <tr>
-                <td>${task.description}</td>
-                <td>${task.income.toLocaleString()}</td>
-                <td>${task.expense.toLocaleString()}</td>
-                <td>${task.profit.toLocaleString()}</td>
-              </tr>
-            `).join('')}
-          </table>`;
-      } else {
-        reportDiv.innerHTML = '<p>هیچ تراکنشی برای این روز ثبت نشده.</p>';
-      }
-    }
-
-    // Monthly Report
-    function showMonthlyReport() {
-      const month = document.getElementById('monthlyDate').value;
-      const filteredTasks = tasks.filter(t => t.date.startsWith(month));
-      const reportDiv = document.getElementById('monthlyReportContent');
-      if (filteredTasks.length > 0) {
-        reportDiv.innerHTML = `
-          <table>
-            <tr><th>تاریخ</th><th>همکار</th><th>جنس</th><th>درآمد کل</th><th>هزینه کل</th><th>سود کل</th></tr>
-            ${filteredTasks.map(t => `
-              <tr>
-                <td>${t.date}</td>
-                <td>${t.partner}</td>
-                <td>${t.item}</td>
-                <td>${t.tasks.reduce((s, task) => s + task.income, 0).toLocaleString()}</td>
-                <td>${t.tasks.reduce((s, task) => s + task.expense, 0).toLocaleString()}</td>
-                <td>${t.tasks.reduce((s, task) => s + task.profit, 0).toLocaleString()}</td>
-              </tr>
-            `).join('')}
-          </table>`;
-      } else {
-        reportDiv.innerHTML = '<p>هیچ تراکنشی برای این ماه ثبت نشده.</p>';
-      }
-    }
-
-    // Accounting
-    function showAccounting() {
-      const year = document.getElementById('accountingDate').value;
-      const filteredTasks = tasks.filter(t => t.date.startsWith(year));
-      const totalIncome = filteredTasks.reduce((sum, t) => sum + t.tasks.reduce((s, task) => s + task.income, 0), 0);
-      const totalExpense = filteredTasks.reduce((sum, t) => sum + t.tasks.reduce((s, task) => s + task.expense, 0), 0);
-      const totalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
-      const totalCredit = credits.reduce((sum, c) => sum + c.amount, 0);
-      const totalProfit = totalIncome - totalExpense - totalDebt + totalCredit;
-      document.getElementById('accountingContent').innerHTML = `
-        <table>
-          <tr><th>مورد</th><th>جزئیات</th></tr>
-          <tr><td>درآمد کل</td><td>${totalIncome.toLocaleString()} تومان</td></tr>
-          <tr><td>هزینه کل</td><td>${totalExpense.toLocaleString()} تومان</td></tr>
-          <tr><td>بدهی کل</td><td>${totalDebt.toLocaleString()} تومان</td></tr>
-          <tr><td>طلب کل</td><td>${totalCredit.toLocaleString()} تومان</td></tr>
-          <tr><td>سود خالص</td><td>${totalProfit.toLocaleString()} تومان</td></tr>
-        </table>`;
-    }
-
-    // Debt
-    function showDebt() {
-      let totalDebt = 0;
-      partners.forEach(p => {
-        const owed = (p.totalWorkedDays || 0) * p.salary - (p.totalPaid || 0);
-        if (owed > 0) totalDebt += owed;
-      });
-      totalDebt += debts.reduce((sum, d) => sum + d.amount, 0);
-      document.getElementById('debtContent').innerHTML = `
-        <table>
-          <tr><th>مورد</th><th>مبلغ</th></tr>
-          <tr><td>بدهی کل به همکارها</td><td>${totalDebt.toLocaleString()} تومان</td></tr>
-        </table>`;
-    }
-    window.addDebt = function() {
-      const desc = document.getElementById('newDebtDescription').value;
-      const amount = parseInt(document.getElementById('newDebtAmount').value);
-      if (!desc || !amount) return alert('توضیح و مبلغ بدهی را وارد کنید');
-      debts.push({ description: desc, amount });
-      localStorage.setItem('debts', JSON.stringify(debts));
-      document.getElementById('newDebtDescription').value = '';
-      document.getElementById('newDebtAmount').value = '';
-      showDebt();
-    }
-    window.settleDebt = function() {
-      const amount = parseInt(document.getElementById('settleDebtAmount').value);
-      if (!amount) return alert('مبلغ را وارد کنید');
-      let remaining = amount;
-      debts = debts.reduce((arr, d) => {
-        if (remaining <= 0) return arr.concat(d);
-        if (d.amount <= remaining) {
-          remaining -= d.amount;
-          return arr;
-        } else {
-          d.amount -= remaining;
-          remaining = 0;
-          return arr.concat(d);
-        }
-      }, []);
-      localStorage.setItem('debts', JSON.stringify(debts));
-      document.getElementById('settleDebtAmount').value = '';
-      showDebt();
-    }
-
-    // Credit
-    function showCredit() {
-      const totalCredit = credits.reduce((sum, c) => sum + c.amount, 0);
-      document.getElementById('creditContent').innerHTML = `
-        <table>
-          <tr><th>مورد</th><th>مبلغ</th></tr>
-          <tr><td>طلب کل</td><td>${totalCredit.toLocaleString()} تومان</td></tr>
-        </table>`;
-    }
-    window.addCredit = function() {
-      const desc = document.getElementById('newCreditDescription').value;
-      const amount = parseInt(document.getElementById('newCreditAmount').value);
-      if (!desc || !amount) return alert('توضیح و مبلغ طلب را وارد کنید');
-      credits.push({ description: desc, amount });
-      localStorage.setItem('credits', JSON.stringify(credits));
-      document.getElementById('newCreditDescription').value = '';
-      document.getElementById('newCreditAmount').value = '';
-      showCredit();
-    }
-    window.settleCredit = function() {
-      const amount = parseInt(document.getElementById('settleCreditAmount').value);
-      if (!amount) return alert('مبلغ را وارد کنید');
-      let remaining = amount;
-      credits = credits.reduce((arr, c) => {
-        if (remaining <= 0) return arr.concat(c);
-        if (c.amount <= remaining) {
-          remaining -= c.amount;
-          return arr;
-        } else {
-          c.amount -= remaining;
-          remaining = 0;
-          return arr.concat(c);
-        }
-      }, []);
-      localStorage.setItem('credits', JSON.stringify(credits));
-      document.getElementById('settleCreditAmount').value = '';
-      showCredit();
-    }
-
-    // Search
-    window.searchTasks = function() {
-      const query = document.getElementById('searchInput').value.toLowerCase().trim();
-      const results = tasks.filter(task => {
-        return task.date.toLowerCase().includes(query) ||
-               task.item.toLowerCase().includes(query) ||
-               task.partner.toLowerCase().includes(query) ||
-               task.tasks.some(t => t.description.toLowerCase().includes(query));
-      });
-      const searchResults = document.getElementById('searchResults');
-      if (!query) { searchResults.innerHTML = '<p>جستجو را شروع کنید...</p>'; return; }
-      if (results.length > 0) {
-        searchResults.innerHTML = `
-          <table>
-            <tr><th>تاریخ</th><th>همکار</th><th>جنس</th><th>توضیحات</th><th>مبلغ کل</th></tr>
-            ${results.map(t => {
-              const totalAmount = t.tasks.reduce((sum, task) => sum + task.income - task.expense, 0);
-              return `
-                <tr>
-                  <td>${t.date}</td>
-                  <td>${t.partner}</td>
-                  <td>${t.item}</td>
-                  <td>${t.tasks.map(task => task.description).join(', ')}</td>
-                  <td>${totalAmount.toLocaleString()} تومان</td>
-                </tr>`;
-            }).join('')}
-          </table>`;
-      } else {
-        searchResults.innerHTML = '<p>هیچ تراکنشی یافت نشد.</p>';
-      }
-    }
-
-    function updateAll() {
-      updatePartnerList();
-      updateItemList();
-      showDailyReport();
-      showMonthlyReport();
-      showAccounting();
-      showDebt();
-      showCredit();
-      searchTasks();
-      updateDateTime();
-    }
-
-    // مقداردهی اولیه
-    const dateInput = document.getElementById('date');
-    const dailyDateInput = document.getElementById('dailyDate');
-    const monthlyDateInput = document.getElementById('monthlyDate');
-    const accountingDateInput = document.getElementById('accountingDate');
-    updateAll();
-    showTab('dailyReport');
-
-    // اینپوت های تاریخ
-    [dateInput, dailyDateInput, monthlyDateInput, accountingDateInput].forEach(inp => {
-      if(inp) inp.addEventListener('change', updateAll);
-    });
-
-    // رفع مشکل بازنویسی مقدار اولیه
-    updateDateTime();
-  });
-  </script>
+  <div id="add">
+    <label>تاریخ</label>
+    <input id="date" type="text" placeholder="مثلاً 1404/04/22">
+    <label>توضیح</label>
+    <input id="desc" type="text" placeholder="توضیح تراکنش">
+    <label>درآمد (تومان)</label>
+    <input id="income" type="number">
+    <label>هزینه (تومان)</label>
+    <input id="expense" type="number">
+    <button onclick="saveTr()">ثبت</button>
+  </div>
+  <div id="list" class="hidden">
+    <button onclick="clearAll()">پاک‌کردن همه</button>
+    <table id="tbl">
+      <thead>
+        <tr><th>تاریخ</th><th>توضیح</th><th>درآمد</th><th>هزینه</th><th>سود</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+<script>
+function showTab(t){
+  document.getElementById('add').classList.add('hidden');
+  document.getElementById('list').classList.add('hidden');
+  document.querySelectorAll('.tab').forEach(e=>e.classList.remove('active'));
+  document.getElementById(t).classList.remove('hidden');
+  document.querySelector('.tab[onclick="showTab(\''+t+'\')"]').classList.add('active');
+  if(t==='list') renderTable();
+}
+function saveTr(){
+  let date=document.getElementById('date').value.trim();
+  let desc=document.getElementById('desc').value.trim();
+  let income=parseInt(document.getElementById('income').value)||0;
+  let expense=parseInt(document.getElementById('expense').value)||0;
+  if(!date||(!income&&!expense)) return alert('تاریخ و یکی از مبالغ را وارد کنید');
+  let tr={date,desc,income,expense,profit:income-expense};
+  let arr=JSON.parse(localStorage.getItem('trs')||'[]');
+  arr.push(tr);
+  localStorage.setItem('trs',JSON.stringify(arr));
+  document.getElementById('desc').value='';
+  document.getElementById('income').value='';
+  document.getElementById('expense').value='';
+  alert('ثبت شد!');
+}
+function renderTable(){
+  let arr=JSON.parse(localStorage.getItem('trs')||'[]');
+  let tb=document.querySelector("#tbl tbody");
+  tb.innerHTML=arr.map(tr=>`<tr>
+    <td>${tr.date}</td>
+    <td>${tr.desc}</td>
+    <td>${tr.income.toLocaleString()}</td>
+    <td>${tr.expense.toLocaleString()}</td>
+    <td>${tr.profit.toLocaleString()}</td>
+    </tr>`).join('');
+}
+function clearAll(){
+  if(confirm('همه تراکنش‌ها پاک شود؟')){localStorage.removeItem('trs');renderTable();}
+}
+// مقداردهی اولیه
+showTab('add');
+</script>
 </body>
 </html>
